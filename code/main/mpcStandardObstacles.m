@@ -145,10 +145,10 @@ function u = mpcStandardObstacles(cfg, xk, xref)
             fprintf("iter %d/%d, dX=%.2f\n", itercount, maxiter, dX);
         end
     end
-    if itercount == maxiter
+    if itercount == maxiter && debug
         fprintf("Max iterations reached (%d) at dX=%.2f>%.2f\n", maxiter, dX, tol);
     end
-    if any(newInfeasibles, 'all')
+    if any(newInfeasibles, 'all') && debug
         warning('Still infeasible (%d states x obstacles) after %d iterations, dX=%.2f', sum(newInfeasibles, 'all'), itercount, dX);
     end
 end

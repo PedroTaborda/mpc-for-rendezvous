@@ -199,7 +199,6 @@ for ii = 1:length(keyTimeSteps)
     fprintf('\\SI{%d}{\\second} & \\SI{%.2f}{\\meter} & \\SI{%.2f}{\\meter} & \\SI{%.2f}{\\percent} \\\\ \n', keyTimeSteps(ii)*dt, tabDistTravelled(ii), tabAbsError(ii), tabRelError(ii));
 end
 
-return;
 %% Experiment 2, actuated
 
 cfg = params();
@@ -407,7 +406,7 @@ for ss = 1:length(Schoices)
 %         fprintf('\\SI{%d}{\\second} & \\SI{%.2f}{\\meter} & \\SI{%.2f}{\\meter} & \\SI{%.2f}{\\percent} \\\\ \n', keyTimeSteps(ii)*dt, tabDistTravelled(ii), tabAbsError(ii), tabRelError(ii));
 %     end
 end
-return;
+
 
 %% aux
 for ss=1:4
@@ -786,7 +785,6 @@ validationFigStylingAndSave(gcf, relpath('exp3-2-err-rel.pdf'));
 fdynamics = trajectoriesLVLHframe{1}(1:3, :);
 cwdiscrete = trajectoriesLVLHframe{3}(1:3, :);
 
-return;
 %% aux
 
 for part=1:2

@@ -139,6 +139,9 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+# pdfcrop temporary files
+*.tex
+
 # Latex
 
 *.acn
@@ -172,3 +175,5 @@ dmypy.json
 *.pyg
 *.zip
 *.mat
+code/main/simView.mlapp
+code/main/simView.mlapp
