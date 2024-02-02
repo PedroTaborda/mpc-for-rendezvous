@@ -18,14 +18,30 @@ function u = mpcRelaxed(cfg, xk, xref)
     if isempty(optimizerMpc)
         optimizerMpc = setupMpc(cfg);
     end
-    % get the optimal control input
-    u = optimizerMpc{xk, xref};
+    if numel(cfg.simulation.obstacles) == 0
+        % get the optimal control input
+        u = relaxConstraints(cfg, optimizerMpc{xk, xref});
+        return;
+    end
+    optimizerMpcObstacles = @(V) relaxConstraints(cfg, optimizerMpc{xk, xref, V});
+    u = mpcCircleToLinearObst(cfg, optimizerMpcObstacles);
+end
 
+function mpcRes = relaxConstraints(cfg, mpcRes)
     % unpack parameters
     M = cfg.controller.M;
     N = cfg.controller.N;
     tmin = cfg.controller.tmin;
     tmax = cfg.controller.tmax;
+    modeOnlyActuation = true;
+
+    if isa(mpcRes, 'cell')
+        u=mpcRes{1};
+        x=mpcRes{2};
+        modeOnlyActuation = false;
+    else
+        u=mpcRes;
+    end
     
     % check if any u, if nonzero, is less than tmin or greater than tmax
     for i = 1:M
@@ -49,8 +65,18 @@ function u = mpcRelaxed(cfg, xk, xref)
             end
         end
     end
+    
+    if modeOnlyActuation
+        mpcRes=u;
+        return
+    end
+    fDynamics = @(x, tThrusters) cfg.system.dynamics.fLinT(x, tThrusters, cfg.controller.tlin);
+    for k = 1:N
+        x(:,k+1) = fDynamics(x(:,k), u(:,k));
+    end
+    mpcRes{1} = u;
+    mpcRes{2} = x;
 end
-
 function opt = setupMpc(cfg)
 
     % unpack parameters
@@ -70,6 +96,12 @@ function opt = setupMpc(cfg)
     sigma = sdpvar(M, N, 'full'); % slack variable
     xRef = sdpvar(6, 1); % final state reference
     x0 = sdpvar(6, 1); % initial state
+    
+    if numel(cfg.simulation.obstacles) > 0
+        V = sdpvar(numel(cfg.simulation.obstacles), 3, N); % circle linear constraints
+    end
+    E = [1, 0, 0, 0, 0, 0;
+         0, 0, 1, 0, 0, 0;];
 
     % objective function and constraints
     obj = 0;
@@ -77,6 +109,9 @@ function opt = setupMpc(cfg)
     for k = 1:N
         con = [con, X(:,k+1) == fDynamics(X(:,k), S(:,k))];
         % con = [con, 0 <= S(:,k) <= tmax];
+        for obs = 1:numel(cfg.simulation.obstacles)
+            con = [con, dot(V(obs, 1:2, k), E*X(:, k+1) ) >= V(obs, 3, k)];
+        end
         for i = 1:M
             con = [con, 0 <= o(i,k) <= 1, o(i,k)*tmin <= sigma(i,k) <= o(i,k)*tmax];
             con = [con, 0 <= S(i,k) <= sigma(i,k)];
@@ -95,6 +130,11 @@ function opt = setupMpc(cfg)
     % con = [con, x0 == xk, xRef == xref];
 
     % set up the optimizer
-    ops = sdpsettings('verbose', 0);
-    opt = optimizer(con, obj, ops, {x0, xRef}, S);
+    ops = sdpsettings('verbose', 0, 'solver', 'gurobi');
+    % create optimizer object
+    if numel(cfg.simulation.obstacles) > 0
+        opt = optimizer(con, obj, ops, {x0, xRef, V}, {S, X});
+    else
+        opt = optimizer(con, obj, ops, {x0, xRef}, S);
+    end
 end

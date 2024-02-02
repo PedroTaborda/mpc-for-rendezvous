@@ -17,21 +17,30 @@ function u = mpcProjected(cfg, xk, xref)
     if isempty(optimizerMpc)
         optimizerMpc = setupMpc(cfg);
     end
+    if numel(cfg.simulation.obstacles) == 0
+        % get the optimal control input
+        res = mpcProjectedSolve(cfg, xk, xref, optimizerMpc, {}); u = res{1};
+        return;
+    end
+    optimizerMpcObstacles = @(V) mpcProjectedSolve(cfg, xk, xref, optimizerMpc, {V});
+    u = mpcCircleToLinearObst(cfg, optimizerMpcObstacles);
 
+end
 
+function res = mpcProjectedSolve(cfg, xk, xref, persOptimizerMpc, argOpt)
     % unpack parameters
     N = cfg.controller.N;
     M = cfg.controller.M;
     tmin = cfg.controller.tmin;
 
     % solve free
-    u = optimizerMpc{xk, xref, zeros(M, N), zeros(M, N)};
+    res = persOptimizerMpc{xk, xref, zeros(M, N), zeros(M, N), argOpt{:}}; u=res{1};x=res{2};
 
     % add tmin constraints if unfeasible
     [conOn, conOff] = addTminConstraints(tmin, M, N, u);
     isfeasible = isempty(conOn) && isempty(conOff);
     while true && ~isfeasible
-        u = optimizerMpc{xk, xref, conOn, conOff};
+        res = persOptimizerMpc{xk, xref, conOn, conOff, argOpt{:}};u=res{1};x=res{2};
         [conOnUpdated, conOffUpdated] = addTminConstraints(tmin, M, N, u);
         isfeasible = isempty(conOnUpdated) && isempty(conOffUpdated);
         if isfeasible || ~nnz(conOnUpdated-conOn)
@@ -40,7 +49,15 @@ function u = mpcProjected(cfg, xk, xref)
         conOn = conOn | conOnUpdated;
         conOff = conOff | conOffUpdated;
     end
-    
+    fDynamics = @(x, tThrusters) cfg.system.dynamics.fLinT(x, tThrusters, cfg.controller.tlin);
+    for k = 1:N
+        x(:,k+1) = fDynamics(x(:,k), u(:,k));
+    end
+    mpcRes{1} = u;
+    mpcRes{2} = x;
+
+    res{1} = u;
+    res{2} = x;
 end
 
 function [conOn, conOff] = addTminConstraints(tmin, M, N, S)
@@ -98,12 +115,22 @@ function opt = setupMpc(cfg)
     xRef = sdpvar(6, 1); % final state reference
     x0 = sdpvar(6, 1); % initial state
 
+    if numel(cfg.simulation.obstacles) > 0
+        V = sdpvar(numel(cfg.simulation.obstacles), 3, N); % circle linear constraints
+    end
+    E = [1, 0, 0, 0, 0, 0;
+         0, 0, 1, 0, 0, 0;];
+
     % objective function and constraints
     obj = 0;
     con = [];
     for k = 1:N
         con = [con, X(:,k+1) == fDynamics(X(:,k), S(:,k))];
         % con = [con, 0 <= S(:,k) <= tmax];
+        for obs = 1:numel(cfg.simulation.obstacles)
+%            con = [con, dot(V(obs, 1:2, k), E*X(:, k+1) ) + 0.1 >= V(obs, 3, k)];
+            con = [con, 0.1 >= V(obs, 3, k)];
+        end
         for m = 1:M
             % if conOn(m, k) == 1, then S(m, k) >= tmin
             % if conOn(m, k) == 0, then S(m, k) >= 0
@@ -124,8 +151,12 @@ function opt = setupMpc(cfg)
     con = [con, X(:, 1) == x0];
     % con = [con, x0 == xk, xRef == xref];
 
-    ops = sdpsettings('verbose', 0);
+    ops = sdpsettings('verbose', 0, 'solver', 'gurobi');
 
-    opt = optimizer(con, obj, ops, {x0, xRef, conOn, conOff}, {S});
+    if numel(cfg.simulation.obstacles) > 0
+        opt = optimizer(con, obj, ops, {x0, xRef, conOn, conOff, V}, {S, X});
+    else
+        opt = optimizer(con, obj, ops, {x0, xRef, conOn, conOff}, {S, X});
+    end
 
 end

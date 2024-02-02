@@ -1,10 +1,12 @@
 
 cfgdefault = params();
+cfgdefault.controller.Q=diag([1, 1, 1, 1, 1, 1])*10;
+% cfgdefault.controller.Xfonly=false;
 
 % N = [5, 10, 20, 40];
-N = [5, 10, 15];
+N = [10, 50, 100];
 Ffactor = [1];
-methods = {'standard', 'standard-o'};
+methods = {'relaxed', 'projected'};
 % methods = {'standard-o'};
 
 dn=2; % index containing default values
@@ -12,13 +14,16 @@ dffac=1;
 dmethod = 2;
 
 cfgdefault.simulation.obstacles = {
-    struct('center', [-10000.0; 70000.0], 'radius', 20000), ...
-    struct('center', [10000.0; 30000.0], 'radius', 15000), ...
+%     struct('center', [15000.0; 30000.0], 'radius', 5000), ...
+%     struct('center', [-10000.0; 70000.0], 'radius', 20000), ...
+%     struct('center', [10000.0; 30000.0], 'radius', 15000), ...
+    struct('center', [-10000.0; 70000.0], 'radius', 10000), ...
+    struct('center', [10000.0; 30000.0], 'radius', 7500), ...
 };
-cfgdefault.simulation.dt = 10;
+% cfgdefault.simulation.dt = 10;
 cfgdefault.controller.tmin = 1;
-% cfgdefault.simulation.T = cfgdefault.simulation.dt*40;
-% cfgdefault.simulation.steps = ceil(cfgdefault.simulation.T/cfgdefault.simulation.dt);
+cfgdefault.simulation.T = cfgdefault.simulation.dt*100;
+cfgdefault.simulation.steps = ceil(cfgdefault.simulation.T/cfgdefault.simulation.dt);
 
 cfgs = cell(length(N), length(Ffactor), length(methods));
 results = cell(length(N), length(Ffactor), length(methods));
@@ -46,12 +51,12 @@ unidimensional_index = @(array_idx) (array_idx(1)) + (array_idx(2)-1)*length(N) 
 
 whatN = @(cfglocal) sprintf('$N=%d$', cfglocal.controller.N);
 idxs_N = arrayfun(@(idx) unidimensional_index([idx, dffac, dmethod]), 1:length(N));
-makeplots(idxs_N, whatN, 'N', cfgs, results);
+makeplots(idxs_N, whatN, 'N2', cfgs, results);
 printstats(idxs_N, whatN, cfgs, results);
 
 whatMethod = @(cfglocal) sprintf('%s', cfglocal.simulation.method);
 idxs_method = arrayfun(@(idx) unidimensional_index([dn, dffac, idx]), 1:length(methods));
-makeplots(idxs_method, whatMethod, 'method', cfgs, results);
+makeplots(idxs_method, whatMethod, 'method2', cfgs, results);
 printstats(idxs_method, whatMethod, cfgs, results);
 
 function printstats(idxs, labelfnc, cfgs, results)
@@ -123,9 +128,9 @@ function makeplots(actual_idxs, legendfunc, figname, cfgs, results, saveonly)
     xlimcur = xlim;
     xlim([xlimcur(1)-10^4, xlimcur(2)-10^4]);
     for idx = 1:length(actual_idxs)
-        if ~endsWith(cfgs{actual_idxs(idx)}.simulation.method, '-o')
-            continue;
-        end
+%         if ~endsWith(cfgs{actual_idxs(idx)}.simulation.method, '-o')
+%             continue;
+%         end
         if numel(cfgs{actual_idxs(idx)}.simulation.obstacles) > 0
             plotObstacles(gca, cfgs{actual_idxs(idx)}, {'Color', colors(5, :), 'Linewidth', 0.5});
             break; % only plot obstacles once

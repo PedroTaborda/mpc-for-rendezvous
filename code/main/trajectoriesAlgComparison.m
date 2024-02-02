@@ -3,9 +3,10 @@
 
 cfg = params();
 cfg.controller.N = 5;
+overwriteCache = true;
 
 methods = {'standard', 'relaxed', 'projected'};
-% methods = {'standard-o'};
+% methods = {'projected'};
 
 cfgs = cell(3, 1);
 results = cell(3, 1);
@@ -14,7 +15,7 @@ for kk = 1:numel(methods)
     cfg.simulation.method = methods{kk};
     cfgs{kk} = cfg;
     res = struct();
-    [res.X, res.S, res.T] = simulate(cfg, [], false);
+    [res.X, res.S, res.T] = simulate(cfg, [], overwriteCache);
     results{kk} = res;
 end
 whatMethod = @(cfglocal) sprintf('%s', cfglocal.simulation.method);

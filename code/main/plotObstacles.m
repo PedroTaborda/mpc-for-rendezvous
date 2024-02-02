@@ -2,7 +2,7 @@ function circlesWereDrawn = plotObstacles(ax,cfg, plotOptions)
 %PLOTOBSTACLES plots the obstacles contained in cfg
     circlesWereDrawn = false;
     if ~endsWith(cfg.simulation.method, '-o')
-        return;
+%         return; % deprecated, currently all may support obstacles
     end
     for cc = 1:numel(cfg.simulation.obstacles)
         obstacle = cfg.simulation.obstacles{cc};

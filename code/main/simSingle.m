@@ -2,15 +2,15 @@
 cfg = params();
 
 cfg.controller.N = 15;
-cfg.simulation.method = 'standard-o';
+cfg.simulation.method = 'projected';
 cfg.simulation.obstacles = {
-    struct('center', [000.0; 50000.0], 'radius', 30000), ...
+    struct('center', [15000.0; 30000.0], 'radius', 5000), ...
 %     struct('center', [35000.0; 50000.0], 'radius', 35000), ...
 %     struct('center', [15000.0; 90000.0], 'radius', 6000), ...
 %     struct('center', [-12000.0;  40000.0], 'radius', 32000), ...
 };
 cfg.system.F = cfg.system.F;
-cfg.simulation.T = cfg.simulation.dt*600;
+cfg.simulation.T = cfg.simulation.dt*5;
 cfg.simulation.steps = ceil(cfg.simulation.T/cfg.simulation.dt);
 res = struct();
 
@@ -24,7 +24,7 @@ plotObstacles(ax, cfg, {});
 % we use this to plot the predicted trajectory at each step and wait for the user to press a key to continue
 plotWait = @(X, Umpc) plotPredictedAndWait(ax, cfg, X, Umpc);
 % plotWait = @(X, Umpc) [];
-[res.X, res.S, res.T] = simulate(cfg, plotWait, false);
+[res.X, res.S, res.T] = simulate(cfg, plotWait, true);
 %%
 makeplots("", 'single_', cfg, res);
 figure(6);
@@ -42,17 +42,17 @@ function plotPredictedAndWait(ax, cfg, X, Umpc)
     M = cfg.controller.M;
     N = cfg.controller.N;
     n = length(cfg.simulation.x0);
-    plot(ax, curState(1), curState(3), 'x', 'Linewidth', 1.2, 'Color', [0, 0.4470, 0.7410]);
-    return;
-%     predictedStates = zeros(n, N+1);
-%     predictedStates(:, 1) = curState;
-%     fDynamics = @(x, tThrusters) cfg.system.dynamics.fLinT(x, tThrusters, cfg.controller.tlin);
-%     for ii = 1:N
-%         predictedStates(:, ii+1) = fDynamics(predictedStates(:, ii), Umpc(:, ii));
-%     end
+    %plot(ax, curState(1), curState(3), 'x', 'Linewidth', 1.2, 'Color', [0, 0.4470, 0.7410]);
+    %return;
+    predictedStates = zeros(n, N+1);
+    predictedStates(:, 1) = curState;
+    fDynamics = @(x, tThrusters) cfg.system.dynamics.fLinT(x, tThrusters, cfg.controller.tlin);
+    for ii = 1:N
+        predictedStates(:, ii+1) = fDynamics(predictedStates(:, ii), Umpc(:, ii));
+    end
     % the x, z position coordinates are the first and third rows of the state
     % plot each point (not connected by lines) and wait for the user to press a key
-%     line = plot(ax, predictedStates(1, :), predictedStates(3, :), 'x', 'Linewidth', 1.2, 'Color', [0.8500, 0.3250, 0.0980]);
+    line = plot(ax, predictedStates(1, :), predictedStates(3, :), 'x', 'Linewidth', 1.2, 'Color', [0.8500, 0.3250, 0.0980]);
     % also plot the current state
     drawnow;
     input('', 's');
