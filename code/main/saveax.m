@@ -12,6 +12,13 @@ function saveax(ax, filename, figsize)
         newAxes(ii).Position = ax(ii).Position;
     end
     saveas(figdummy, filename);
-    system(sprintf("pdfcrop %s %s > NUL", filename, filename));
+    % Check if pdfcrop is installed
+    [status, result] = system('pdfcrop -h');
+    if status == 0
+        % Crop the pdf
+        system(sprintf("pdfcrop %s %s", filename, filename));
+    else
+        warning("pdfcrop not found, whitespace not cropped - it is safe to ignore/comment out this warning");
+    end
     delete(figdummy);
 end
