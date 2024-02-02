@@ -124,7 +124,6 @@ x0 = [0, 0, 0, 100, 0, 0]';
 % x, y, z, x', y', z'
 
 t = 0:dt:T;
-XNewtonLVLH = zeros(length(x0), length(t) + 1);
 XNewtonECI = zeros(length(x0), length(t) + 1);
 Xcw = zeros(length(x0), length(t) + 1);
 Xcwlin = zeros(length(x0), length(t) + 1);
@@ -153,7 +152,6 @@ YdotCWexact = @(t) -Y0*w*sin(w*t) + Ydot0*cos(w*t);
 ZdotCWexact = @(t) (3*Z0*w - 2*Xdot0) * sin(w*t) + Zdot0*cos(w*t);
 
 iterationTime = zeros(1, length(t));
-XNewtonLVLH(:,1) = x0;
 XNewtonECI(:,1) = x0;
 Xcw(:,1) = x0;
 Xcwlin(:,1) = x0;
@@ -164,9 +162,6 @@ fDynamicscwlin = @(x, tThrusters) cfg.system.dynamics.fLinT(x, tThrusters, cfg.c
 
 for i = 2:length(t)+1
     % simulate for one time step
-    [tR, yR] = ode45(@(tO, xO) newtonDynamics(tO, xO, t(i-1), u, cfg), [t(i-1), t(i-1)+dt], XNewtonLVLH(:, i-1));
-    XNewtonLVLH(:, i) = yR(end, :)';
-    
     [tR, yR] = ode45(@(tO, xO) newtonDynamicsECI(tO, xO, t(i-1), u, cfg), [t(i-1), t(i-1)+dt], lvlh2eci(cfg, XNewtonECI(:, i-1), t(i-1)));
     XNewtonECI(:, i) = eci2lvlh(cfg, yR(end, :)', t(i-1)+dt);
     
@@ -177,9 +172,9 @@ for i = 2:length(t)+1
     Xcwexact(:, i) = Xcwexactfun(t(i-1)+dt);
 end
 
-trajectoriesLVLHframe = {XNewtonLVLH, XNewtonECI, Xcw, Xcwlin, Xcwexact};
-names = {'NewtonLVLH', 'NewtonECI', 'CW', 'CW linearized', 'CW exact'};
-idxsToPlot = [2, 3];
+trajectoriesLVLHframe = {XNewtonECI, Xcw, Xcwlin, Xcwexact};
+names = {'NewtonECI', 'CW', 'CW linearized', 'CW exact'};
+idxsToPlot = [1, 2];
 
 orbit = zeros(6, length(t));
 orbiteci = lvlh2eci(cfg, orbit, t(1));
