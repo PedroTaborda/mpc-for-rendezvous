@@ -115,12 +115,11 @@ function opt = setupMpc(cfg)
         for i = 1:M
             con = [con, 0 <= o(i,k) <= 1, o(i,k)*tmin <= sigma(i,k) <= o(i,k)*tmax];
             con = [con, 0 <= S(i,k) <= sigma(i,k)];
+            obj = obj + S(i, k);
         end
         % con = [con, sum(o(:,k)) <= K];
-        if cfg.controller.XfOnly
-            obj = obj + S(:,k)'*R*S(:,k);
-        else
-            obj = obj + S(:,k)'*R*S(:,k) + (X(:,k+1) - xRef(:))'*Q*(X(:,k+1) - xRef(:));
+        if ~cfg.controller.XfOnly
+            obj = obj + (X(:,k+1) - xRef(:))'*Q*(X(:,k+1) - xRef(:));
         end
     end
     if cfg.controller.XfOnly

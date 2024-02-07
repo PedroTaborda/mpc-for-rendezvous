@@ -138,11 +138,10 @@ function opt = setupMpc(cfg)
             % if conOff(m, k) == 1, then S(m, k) <= 0 => S(m, k) == 0
             % if conOff(m, k) == 0, then S(m, k) <= tmax
             con = [con, S(m, k) <= tmax*(1 - conOff(m, k))];
+            obj = obj + S(m, k);
         end
-        if cfg.controller.XfOnly
-            obj = obj + S(:,k)'*R*S(:,k);
-        else
-            obj = obj + S(:,k)'*R*S(:,k) + (X(:,k+1) - xRef(:))'*Q*(X(:,k+1) - xRef(:));
+        if ~cfg.controller.XfOnly
+            obj = obj + (X(:,k+1) - xRef(:))'*Q*(X(:,k+1) - xRef(:));
         end
     end
     if cfg.controller.XfOnly
