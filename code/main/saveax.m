@@ -13,7 +13,7 @@ function saveax(ax, filename, figsize)
     end
     saveas(figdummy, filename);
     % Check if pdfcrop is installed
-    [status, result] = system('pdfcrop -h');
+    [status, result] = system('pdfcrop --help');
     if status == 0
         % Crop the pdf
         system(sprintf("pdfcrop %s %s", filename, filename));

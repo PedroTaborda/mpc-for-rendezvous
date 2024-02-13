@@ -7,11 +7,11 @@ cfgDefault.simulation.verbosity = 0;
 
 Ns = [5, 10, 15]; % MPC controller horizon
 %% Parameters to compare
-for ii = 1:3
+for ii = 1:length(Ns)
 %     N = [5, 10, 15]; % MPC controller horizon
     N=Ns(ii);
     dt = 10; % simulation step size
-    method = {'standard', 'projected', 'relaxed'}; % MPC solver method
+    method = {'standard', 'relaxed', 'projected'}; % MPC solver method
     rerunID = 0:99;
     % rerunID = 0;
     suffix =sprintf('N%d.pdf', N);
@@ -28,10 +28,8 @@ for ii = 1:3
     t = zeros(length(N), length(tmin), length(dt), length(rerunID), length(method), steps);
     X = zeros(length(N), length(tmin), length(dt), length(rerunID), length(method), steps, 2);
     U = zeros(length(N), length(tmin), length(dt), length(rerunID), length(method), steps, 6);
-    B = [1, 0, 0, 0, 0, 0;
-         0, 0, 1, 0, 0, 0];
     
-    ii = 0;
+    iN = 0;
     NN=length(N)*length(tmin)*length(dt)*length(rerunID)*length(method);
     for n = 1:length(rerunID)
         fprintf("RERUN: %d/%d\n", n, length(rerunID));
@@ -51,10 +49,10 @@ for ii = 1:3
                         % Run simulation
                         [x, u, titer] = simulate(cfg);
                         t(i,j,k,n,l,:) = titer(2:end);
-                        X(i,j,k,n,l,:,:) = (B*x(:, 3:end))';
+                        X(i,j,k,n,l,:,:) = x([1 3], 3:end)';
                         U(i,j,k,n,l,:,:) = u(:, 2:end)';
-                        ii = ii+1;
-                        fprintf("%d/%d\n", ii, NN);
+                        iN = iN+1;
+%                         fprintf("%d/%d\n", ii, NN);
                     end
                 end
             end
@@ -70,9 +68,9 @@ for ii = 1:3
         for j = 1:length(tmin)
             for k = 1:length(dt)
                 for n = 1:length(rerunID)
-                    fIdxStandard(i,j,k,n) = getFinishTime(reshape(X(i,j,k,n,1,:,:), 2, steps));
-                    fIdxProjected(i,j,k,n) = getFinishTime(reshape(X(i,j,k,n,2,:,:), 2, steps));
-                    fIdxRelaxed(i,j,k,n) = getFinishTime(reshape(X(i,j,k,n,3,:,:), 2, steps));
+                    fIdxStandard(i,j,k,n) = getFinishTime(squeeze(X(i,j,k,n,1,:,:))');
+                    fIdxRelaxed(i,j,k,n) = getFinishTime(squeeze(X(i,j,k,n,2,:,:))');
+                    fIdxProjected(i,j,k,n) = getFinishTime(squeeze(X(i,j,k,n,3,:,:)));
                 end
             end
         end
@@ -89,8 +87,8 @@ for ii = 1:3
     trelaxed = reshape(t(:,:,:,:,3,:), [], steps);
     
     Xstandard = X(:,:,:,:,1,:,:);
-    Xprojected = X(:,:,:,:,2,:,:);
-    Xrelaxed = X(:,:,:,:,3,:,:);
+    Xrelaxed = X(:,:,:,:,2,:,:);
+    Xprojected = X(:,:,:,:,3,:,:);
     
     Eprojected = Xprojected - Xstandard;
     Erelaxed = Xrelaxed - Xstandard;
@@ -176,7 +174,6 @@ for ii = 1:3
     meanLine = {'LineWidth', 2, 'LineStyle', '-'};
     minmaxLine = {'LineWidth', 0.5, 'LineStyle', ':'};
     
-    bigFont = true;
 
     % Plot solver times histograms
     nbins = 5000;
@@ -185,12 +182,10 @@ for ii = 1:3
     edges = 10.^linspace(log10(binLimits(1)),log10(binLimits(2)), 500);
     h = figure(1);
     clf;
-    if bigFont
-        set(h, "DefaultAxesFontSize", 12);
-        set(h, "DefaultTextFontSize", 12);
-    end
+    set(h, "DefaultAxesFontSize", 8);
+    set(h, "DefaultTextFontSize", 8);
 
-    hold on;
+    hold on; box on;
     % opts = {'Normalization', 'probability', 'EdgeColor', 'none'};
     opts = {'EdgeColor', 'none'};
     histogram(squeeze(tstandard), edges, opts{:});
@@ -203,23 +198,27 @@ for ii = 1:3
     plot([trelaxedmean, trelaxedmean], ylimits, rc{:}, histMeanLine{:});
     hold off;
     ylim tight;
-    xLimits = [min([tstandard, tprojected, trelaxed], [], 'all'), binLimits(2)];
-    xlim(xLimits);
-    legend('Standard', 'Projected', 'Relaxed', 'Mean');
-    xlabel('Solve Time (s)');
+    timeLimits = [min([tstandard, tprojected, trelaxed], [], 'all'), binLimits(2)];
+    xlim(timeLimits);
+%     legend('Standard', 'Projected', 'Relaxed', 'Mean');
+    xlabel('Solve Time [s]');
     ylabel('Count');
-    set(gca,'xscale','log');
-    setFigSize(gcf, 14, 4.5);
-    benchmarksFigStylingAndSave(gcf, impath('solverTimesHistograms'));
+    set(gca, 'xscale', 'log');
+    set(gca, 'ytick', []);
+    set(gca, 'yticklabel', []);
+    set(gca, 'Linewidth', 1.5);
+    if ~strcmp(get(h, 'WindowStyle'), 'docked')
+        h.OuterPosition(3) = 244.0000;
+        h.OuterPosition(4) = 227;
+    end
+    benchmarksFigStylingAndSave(h, impath('solverTimesHistograms'));
     
     % Plot solver times, mean line along steps, max line along steps, min line
     h = figure(2);
     clf;
-    if bigFont
-        set(h, "DefaultAxesFontSize", 12);
-        set(h, "DefaultTextFontSize", 12);
-    end
-    hold on;
+    set(h, "DefaultAxesFontSize", 8);
+    set(h, "DefaultTextFontSize", 8);
+    hold on; box on;
     plot(simt, mean(tstandard, 1), sc{:}, meanLine{:});
     plot(simt, mean(tprojected, 1), pc{:}, meanLine{:});
     plot(simt, mean(trelaxed, 1), rc{:}, meanLine{:});
@@ -241,20 +240,25 @@ for ii = 1:3
     xlim tight;
     hold off;
     
-    legend('Standard', 'Projected', 'Relaxed', '', '', '', '', '', '', 'Finish', 'Location', 'northwest');
-    xlabel('Simulation Time (s)');
-    ylabel('Solve Time (s)');
-    setFigSize(gcf, 14, 4.5);
-    benchmarksFigStylingAndSave(gcf, impath('solverTimesAlongSteps'));
+%     legend('Standard', 'Projected', 'Relaxed', '', '', '', '', '', '', 'Finish', 'Location', 'northwest');
+    xlabel('Time [s]');
+    ylabel('Solve Time [s]');
+    if ~strcmp(get(h, 'WindowStyle'), 'docked')
+        h.OuterPosition(3) = 244;
+        h.OuterPosition(4) = 227;
+    end
+    set(gca, 'Linewidth', 1.5);
+    ylim(timeLimits);
+    set(gca, 'ytick', [1e-2, 1]);
+    set(gca, 'yticklabel', {'10^{-2}', '10^{0}'});
+    benchmarksFigStylingAndSave(h, impath('solverTimesAlongSteps'));
     
     % Plot error norm along steps (EprojectedNorm, ErelaxedNorm)
     h=figure(3);
     clf;
-    if bigFont
-        set(h, "DefaultAxesFontSize", 12);
-        set(h, "DefaultTextFontSize", 12);
-    end
-    hold on;
+    set(h, "DefaultAxesFontSize", 8);
+    set(h, "DefaultTextFontSize", 8);
+    hold on; box on;
     plot(simt, mean(EprojectedNorm, 1), pc{:}, meanLine{:});
     plot(simt, mean(ErelaxedNorm, 1), rc{:}, meanLine{:});
     set(gca, 'YScale', 'log');
@@ -267,20 +271,22 @@ for ii = 1:3
     hold off;
     xlim tight;
     
-    legend('Projected', 'Relaxed', 'Location', 'southwest');
-    xlabel('Simulation Time (s)');
-    ylabel('Absolute Error (m)');
-    setFigSize(gcf, 14, 4.5);
-    benchmarksFigStylingAndSave(gcf, impath('errorNormAlongSteps'));
+%     legend('Projected', 'Relaxed', 'Location', 'southwest');
+    xlabel('Time [s]');
+    ylabel('Absolute Error [m]');
+    if ~strcmp(get(h, 'WindowStyle'), 'docked')
+        h.OuterPosition(3) = 244.0000;
+        h.OuterPosition(4) = 227;
+    end
+    set(gca, 'Linewidth', 1.5);
+    benchmarksFigStylingAndSave(h, impath('errorNormAlongSteps'));
     
     % Plot control norm integral along steps (UprojectedNorm, UrelaxedNorm)
     h=figure(4);
     clf;
-    if bigFont
-        set(h, "DefaultAxesFontSize", 12);
-        set(h, "DefaultTextFontSize", 12);
-    end
-    hold on;
+    set(h, "DefaultAxesFontSize", 8);
+    set(h, "DefaultTextFontSize", 8);
+    hold on; box on;
     plot(simt, mean(UstandardNormAccumulated, 1), sc{:}, meanLine{:});
     plot(simt, mean(UprojectedNormAccumulated, 1), pc{:}, meanLine{:});
     plot(simt, mean(UrelaxedNormAccumulated, 1), rc{:}, meanLine{:});
@@ -299,14 +305,18 @@ for ii = 1:3
     xlim tight;
     
     if N > 7
-        legend('Standard', 'Projected', 'Relaxed', 'Finish', 'Location', 'southeast');
+%         legend('Standard', 'Projected', 'Relaxed', 'Finish', 'Location', 'southeast');
     else
-        legend('Standard', 'Projected', 'Relaxed', 'Finish', 'Location', 'northwest');
+%         legend('Standard', 'Projected', 'Relaxed', 'Finish', 'Location', 'northwest');
     end
-    xlabel('Simulation Time (s)');
-    ylabel('Cumulative Control Effort (s)');
-    setFigSize(gcf, 14, 4.5);
-    benchmarksFigStylingAndSave(gcf, impath('controlNormIntegralAlongSteps'));
+    xlabel('Time [s]');
+    ylabel('Cumulative Control Effort [s]');
+    if ~strcmp(get(h, 'WindowStyle'), 'docked')
+        h.OuterPosition(3) = 244.0000;
+        h.OuterPosition(4) = 227;
+    end
+    set(gca, 'Linewidth', 1.5);
+    benchmarksFigStylingAndSave(h, impath('controlNormIntegralAlongSteps'));
     
     %% 
     for i = 1:length(N)
