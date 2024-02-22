@@ -84,6 +84,8 @@ function makeplots(actual_idxs, legendfunc, figname, cfgs, results)
     thrusternames = {'Down', 'Up', 'Left', 'Right'};
     thrusterticks = 1:4;
     trajPlotOptions = {'Linewidth', 1.5};
+    xlimtraj = [-10, 40]; % km
+    ylimtraj = [-50, 110];
 
     fignameTraj = sprintf('%s_traj.pdf', figname);
     h = findall(groot, 'Type', 'figure', 'Name', fignameTraj);
@@ -134,6 +136,8 @@ function makeplots(actual_idxs, legendfunc, figname, cfgs, results)
     ylabel('z [km]');
     pos = ax.Position;
     ax.Position = pos + [0, 0.03, 0, 0];
+    xlim(xlimtraj);
+    ylim(ylimtraj);
     saveas(h, sprintf('%s.pdf', relpathinimgfolder(fignameTraj)));
     system(sprintf("pdfcrop %s %s", sprintf('%s.pdf', relpathinimgfolder(fignameTraj)), sprintf('%s.pdf', relpathinimgfolder(fignameTraj))));
 

@@ -11,7 +11,7 @@ for ii = 1:length(Ns)
 %     N = [5, 10, 15]; % MPC controller horizon
     N=Ns(ii);
     dt = 10; % simulation step size
-    method = {'standard', 'relaxed', 'projected'}; % MPC solver method
+    method = {'standard', 'projected', 'relaxed'}; % MPC solver method
     rerunID = 0:99;
     % rerunID = 0;
     suffix =sprintf('N%d.pdf', N);
@@ -69,8 +69,8 @@ for ii = 1:length(Ns)
             for k = 1:length(dt)
                 for n = 1:length(rerunID)
                     fIdxStandard(i,j,k,n) = getFinishTime(squeeze(X(i,j,k,n,1,:,:))');
-                    fIdxRelaxed(i,j,k,n) = getFinishTime(squeeze(X(i,j,k,n,2,:,:))');
-                    fIdxProjected(i,j,k,n) = getFinishTime(squeeze(X(i,j,k,n,3,:,:)));
+                    fIdxProjected(i,j,k,n) = getFinishTime(squeeze(X(i,j,k,n,2,:,:)));
+                    fIdxRelaxed(i,j,k,n) = getFinishTime(squeeze(X(i,j,k,n,3,:,:))');
                 end
             end
         end
@@ -87,8 +87,8 @@ for ii = 1:length(Ns)
     trelaxed = reshape(t(:,:,:,:,3,:), [], steps);
     
     Xstandard = X(:,:,:,:,1,:,:);
-    Xrelaxed = X(:,:,:,:,2,:,:);
-    Xprojected = X(:,:,:,:,3,:,:);
+    Xprojected = X(:,:,:,:,2,:,:);
+    Xrelaxed = X(:,:,:,:,3,:,:);
     
     Eprojected = Xprojected - Xstandard;
     Erelaxed = Xrelaxed - Xstandard;
@@ -99,23 +99,6 @@ for ii = 1:length(Ns)
     % norm
     EprojectedNorm = squeeze(vecnorm(Eprojected, 2, 2));
     ErelaxedNorm = squeeze(vecnorm(Erelaxed, 2, 2));
-    
-%     Ustandard = U(:,:,:,:,1,:,:);
-%     Uprojected = U(:,:,:,:,2,:,:);
-%     Urelaxed = U(:,:,:,:,3,:,:);
-%     
-%     Ustandard = reshape(Ustandard, [], 6, steps);
-%     Uprojected = reshape(Uprojected, [], 6, steps);
-%     Urelaxed = reshape(Urelaxed, [], 6, steps);
-%     
-%     % norm
-%     UstandardNorm = squeeze(vecnorm(Ustandard, 2, 2));
-%     UprojectedNorm = squeeze(vecnorm(Uprojected, 2, 2));
-%     UrelaxedNorm = squeeze(vecnorm(Urelaxed, 2, 2));
-%     
-%     UstandardNormAccumulated = cumsum(UstandardNorm, 2);
-%     UprojectedNormAccumulated = cumsum(UprojectedNorm, 2);
-%     UrelaxedNormAccumulated = cumsum(UrelaxedNorm, 2);
     
     Ustandard = squeeze(U(:,:,:,:,1,:,:));
     Uprojected = squeeze(U(:,:,:,:,2,:,:));

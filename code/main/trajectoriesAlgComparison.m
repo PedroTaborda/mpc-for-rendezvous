@@ -1,11 +1,12 @@
 
+overwriteCache = false;
+
 %%
 
 cfg = params();
 cfg.controller.N = 5;
-overwriteCache = false;
 
-methods = {'standard', 'relaxed', 'projected'};
+methods = {'standard', 'projected', 'relaxed'};
 % methods = {'projected'};
 
 cfgs = cell(3, 1);
@@ -28,7 +29,7 @@ printstats(1:3, whatMethod, cfgs, results);
 cfg = params();
 cfg.controller.N = 10;
 
-methods = {'standard', 'relaxed', 'projected'};
+methods = {'standard', 'projected', 'relaxed'};
 % methods = {'standard-o'};
 
 cfgs = cell(3, 1);
@@ -38,7 +39,7 @@ for kk = 1:numel(methods)
     cfg.simulation.method = methods{kk};
     cfgs{kk} = cfg;
     res = struct();
-    [res.X, res.S, res.T] = simulate(cfg, [], false);
+    [res.X, res.S, res.T] = simulate(cfg, [], overwriteCache);
     results{kk} = res;
 end
 whatMethod = @(cfglocal) sprintf('%s', cfglocal.simulation.method);
@@ -51,7 +52,31 @@ printstats(1:3, whatMethod, cfgs, results);
 cfg = params();
 cfg.controller.N = 15;
 
-methods = {'standard', 'relaxed', 'projected'};
+methods = {'standard', 'projected', 'relaxed'};
+% methods = {'standard-o'};
+
+cfgs = cell(3, 1);
+results = cell(3, 1);
+
+for kk = 1:numel(methods)
+    cfg.simulation.method = methods{kk};
+    cfgs{kk} = cfg;
+    res = struct();
+    [res.X, res.S, res.T] = simulate(cfg, [], overwriteCache);
+    results{kk} = res;
+end
+whatMethod = @(cfglocal) sprintf('%s', cfglocal.simulation.method);
+makeplots(1:3, whatMethod, sprintf('method_N_%d', cfg.controller.N), cfgs, results);
+fprintf('N = %d', cfg.controller.N);
+printstats(1:3, whatMethod, cfgs, results);
+
+
+%%
+
+cfg = params();
+cfg.controller.N = 100;
+
+methods = {'standard', 'projected', 'relaxed'};
 % methods = {'standard-o'};
 
 cfgs = cell(3, 1);
@@ -68,6 +93,28 @@ whatMethod = @(cfglocal) sprintf('%s', cfglocal.simulation.method);
 makeplots(1:3, whatMethod, sprintf('method_N_%d', cfg.controller.N), cfgs, results);
 fprintf('N = %d', cfg.controller.N);
 printstats(1:3, whatMethod, cfgs, results);
+
+
+%%
+
+cfg = params();
+N = [100, 125, 150];
+cfg.simulation.method = 'relaxed';
+
+cfgs = cell(3, 1);
+results = cell(3, 1);
+
+for kk = 1:length(N)
+    cfg.controller.N = N(kk);
+    cfgs{kk} = cfg;
+    res = struct();
+    [res.X, res.S, res.T] = simulate(cfg, [], false);
+    results{kk} = res;
+end
+whatHorizon = @(cfglocal) sprintf('%d', cfglocal.controller.N);
+makeplots(1:3, whatHorizon, sprintf('_relaxed_largeN'), cfgs, results);
+disp('Relaxed, large horizons\n');
+printstats(1:3, whatHorizon, cfgs, results);
 
 
 
@@ -106,6 +153,8 @@ function makeplots(actual_idxs, legendfunc, figname, cfgs, results)
     thrusternames = {'Down', 'Up', 'Left', 'Right'};
     thrusterticks = 1:4;
     trajPlotOptions = {'Linewidth', 1.5};
+    xlimtraj = [-10, 40]; % km
+    ylimtraj = [-50, 110];
 
     fignameTraj = sprintf('%s_traj.pdf', figname);
     h = findall(groot, 'Type', 'figure', 'Name', fignameTraj);
@@ -156,6 +205,8 @@ function makeplots(actual_idxs, legendfunc, figname, cfgs, results)
     ylabel('z [km]');
     pos = ax.Position;
     ax.Position = pos + [0, 0.03, 0, 0];
+    xlim(xlimtraj);
+    ylim(ylimtraj);
     saveas(h, sprintf('%s.pdf', relpathinimgfolder(fignameTraj)));
     system(sprintf("pdfcrop %s %s", sprintf('%s.pdf', relpathinimgfolder(fignameTraj)), sprintf('%s.pdf', relpathinimgfolder(fignameTraj))));
 
