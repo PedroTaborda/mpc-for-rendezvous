@@ -130,6 +130,7 @@ function opt = setupMpc(cfg)
 
     % set up the optimizer
     ops = sdpsettings('verbose', 0, 'solver', 'gurobi');
+    ops.gurobi.BarHomogeneous = 1;
     % create optimizer object
     if numel(cfg.simulation.obstacles) > 0
         opt = optimizer(con, obj, ops, {x0, xRef, V}, {S, X});
